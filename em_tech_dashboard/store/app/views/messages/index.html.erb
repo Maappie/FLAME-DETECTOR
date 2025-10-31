@@ -1,0 +1,6 @@
+<h3>Messages (latest)</h3>
+<ul>
+  <% @messages.each do |m| %>
+    <li><%= link_to m.id, message_path(m) %> — <%= m.sender_tag %> — <%= m.message %></li>
+  <% end %>
+</ul>

@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  sender_tag: MyString
+  nonce: MyString
+  message: MyText
+  level: MyString
+  zone: MyString
+  raw_payload: MyText
+
+two:
+  sender_tag: MyString
+  nonce: MyString
+  message: MyText
+  level: MyString
+  zone: MyString
+  raw_payload: MyText

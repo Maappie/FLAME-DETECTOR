@@ -1,0 +1,360 @@
+<!-- app/views/cameras/show.html.erb -->
+<div class="container-fluid py-3">
+  <!-- Top bar -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <h3 class="mb-0">Fire Monitor</h3>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary">Rails</span>
+        <span class="badge bg-secondary">YOLO</span>
+        <span class="badge bg-secondary">MQTT</span>
+        <span id="mqtt-status" class="badge bg-warning text-dark">Waiting…</span>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button id="refresh-btn" class="btn btn-sm btn-outline-primary">Refresh</button>
+    </div>
+  </div>
+
+  <!-- KPI mini-cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Latest Message</div>
+          <div id="last-recv" class="fs-5">no messages yet</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Feed Count (visible)</div>
+          <div id="feed-count" class="fs-5">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Stream Health</div>
+          <div id="stream-health" class="fs-5">checking…</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">MQTT Topic</div>
+          <div class="fs-6"><code>site/lab1/ingest/rails</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main split: smaller camera on the left -->
+  <div class="row g-3">
+    <!-- Left (smaller): Camera + quick controls -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <strong>Live Feed</strong>
+          <small class="text-muted">stream.py must be running & token must match</small>
+        </div>
+        <div class="card-body">
+          <!-- Portrait box, capped size -->
+          <div class="rounded overflow-hidden bg-black mx-auto"
+               style="aspect-ratio:3/4; width:min(420px, 90vw); max-height:80vh;">
+            <img id="mjpeg" src="<%= @stream_url %>"
+                 alt="YOLO Live Feed"
+                 style="width:100%; height:100%; object-fit:contain; display:block;">
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <strong>Camera Controls</strong>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="forceReloadStream()">Reload Stream</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="toggleAutoRefresh()">Toggle Auto-Refresh</button>
+          </div>
+          <div class="text-muted small mt-2">Tip: if the MJPEG hangs, reload. If it keeps failing, your token or host is wrong.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right (larger): MQTT live + recent alerts -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <strong>MQTT Live (latest)</strong>
+          <small class="text-muted">Polling <code>/messages.json</code> every 1s</small>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush" id="mqtt-feed" style="max-height: 52vh; overflow:auto;">
+            <!-- rows injected here -->
+          </div>
+        </div>
+        <div class="card-footer d-flex align-items-center justify-content-between">
+          <small class="text-muted">Topic: <code>site/lab1/ingest/rails</code></small>
+          <small class="text-muted">Newest status: <span id="badge-shadow" class="badge bg-light text-dark">—</span></small>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <strong>Recent Alerts</strong>
+          <small class="text-muted">Show only if 3-second burst is detected</small>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width:28%;">When</th>
+                <th style="width:28%;">Sender</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="alerts-tbody">
+              <!-- populated from same /messages.json (filtered) -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ===== MJPEG auto-reconnect + periodic refresh =====
+  const img  = document.getElementById('mjpeg');
+  const base = "<%= @stream_url %>";
+  const url  = () => base + (base.includes('?') ? '&' : '?') + "_t=" + Date.now();
+  let autoRefreshTimer = null;
+
+  function reloadSoon(ms=1500){ setTimeout(()=> img.src = url(), ms); }
+  function startAutoRefresh(){
+    if (autoRefreshTimer) return;
+    autoRefreshTimer = setInterval(() => img.src = url(), 5 * 60 * 1000);
+  }
+  function stopAutoRefresh(){
+    if (!autoRefreshTimer) return;
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+  window.forceReloadStream = () => { img.src = url(); };
+  window.toggleAutoRefresh = () => { autoRefreshTimer ? stopAutoRefresh() : startAutoRefresh(); };
+
+  img.addEventListener('error', () => reloadSoon());
+  startAutoRefresh();
+
+  const streamHealthEl = document.getElementById('stream-health');
+  let lastStreamOkAt = null;
+  img.addEventListener('load', () => { lastStreamOkAt = Date.now(); updateStreamHealth(); });
+  function updateStreamHealth(){
+    if (!streamHealthEl) return;
+    if (!lastStreamOkAt) { streamHealthEl.textContent = 'checking…'; return; }
+    const sec = Math.floor((Date.now() - lastStreamOkAt)/1000);
+    streamHealthEl.textContent = sec < 10 ? 'OK' : (sec < 60 ? `quiet ${sec}s` : `quiet ${Math.floor(sec/60)}m`);
+  }
+  setInterval(updateStreamHealth, 2000);
+
+  // ===== MQTT live panel (poll /messages.json) =====
+  const FEED_LIMIT   = 20;
+  const POLL_MS      = 1000; // 1s polling
+  const feedEl       = document.getElementById('mqtt-feed');
+  const statusBadge  = document.getElementById('mqtt-status');
+  const lastRecvEl   = document.getElementById('last-recv');
+  const countEl      = document.getElementById('feed-count');
+  const refreshBtn   = document.getElementById('refresh-btn');
+  const alertsBody   = document.getElementById('alerts-tbody');
+  const badgeShadow  = document.getElementById('badge-shadow');
+
+  // Client-side cache & delta anchor
+  let allRows = [];          // newest -> oldest
+  let newestId = null;       // last anchor for delta fetches
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+    if (diff < 60)  return `${Math.floor(diff)}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+  }
+
+  function setStatus(ageSec) {
+    if (isNaN(ageSec)) {
+      statusBadge.className = "badge bg-warning text-dark";
+      statusBadge.textContent = "Waiting…";
+      badgeShadow.textContent = "—";
+      return;
+    }
+    if (ageSec <= 5) {
+      statusBadge.className = "badge bg-success";
+      statusBadge.textContent = "Live";
+      badgeShadow.textContent = "fresh";
+    } else if (ageSec <= 30) {
+      statusBadge.className = "badge bg-info";
+      statusBadge.textContent = "Idle";
+      badgeShadow.textContent = "recent";
+    } else {
+      statusBadge.className = "badge bg-secondary";
+      statusBadge.textContent = "Stale";
+      badgeShadow.textContent = "stale";
+    }
+  }
+
+  function renderRows(rows){
+    feedEl.innerHTML = rows.map(m => {
+      const tz = m.zone ? `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle me-1">${m.zone}</span>` : "";
+      const lvl = m.level ? `<span class="badge bg-dark-subtle text-dark-emphasis border border-dark-subtle me-1">${m.level}</span>` : "";
+      const nt = m.nonce ? `<code class="text-muted">${m.nonce}</code>` : "";
+      const sender = m.sender_tag || 'unknown';
+      const msg = (m.message || '').toString();
+      const created = m.created_at ? new Date(m.created_at) : null;
+
+      return `
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="me-2">
+              <div class="fw-semibold">${sender}</div>
+              <div class="small text-muted">${created ? created.toLocaleString() : ''} • ${timeAgo(m.created_at)}</div>
+            </div>
+            <div>${nt}</div>
+          </div>
+          <div class="mt-2">${lvl}${tz}<span>${msg}</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Helper: check for a 3s burst (>=1 msg in each of t, t+1, t+2 seconds)
+  function has3sBurst(startIso, rows) {
+    const startSec = Math.floor(new Date(startIso).getTime() / 1000);
+    const covered = new Set();
+    for (const r of rows) {
+      if (!r.created_at) continue;
+      const s = Math.floor(new Date(r.created_at).getTime() / 1000);
+      if (s >= startSec && s <= startSec + 2) covered.add(s);
+      if (covered.size === 3) break;
+    }
+    return covered.has(startSec) && covered.has(startSec + 1) && covered.has(startSec + 2);
+  }
+
+  // Alerts table: show only when a 3s burst is present
+  function renderAlerts(rows){
+    // Candidate "fire" messages
+    const candidates = rows.filter(m => {
+      const lvl = (m.level || '').toString().toUpperCase();
+      const msg = (m.message || '').toString().toLowerCase();
+      return lvl.includes('FIRE') || msg.includes('fire') || msg.includes('flame');
+    });
+
+    // Keep only those that start a valid 3s burst
+    const seenStarts = new Set(); // dedupe by starting second
+    const qualifying = [];
+    for (const a of candidates) {
+      if (!a.created_at) continue;
+      const startSec = Math.floor(new Date(a.created_at).getTime() / 1000);
+      if (seenStarts.has(startSec)) continue;
+
+      // Count ANY messages in the 3s window; change to 'candidates' to count only fire-tagged.
+      if (has3sBurst(a.created_at, rows)) {
+        seenStarts.add(startSec);
+        qualifying.push(a);
+      }
+      if (qualifying.length >= 5) break; // show at most 5
+    }
+
+    alertsBody.innerHTML = qualifying.map(a => {
+      const created = a.created_at ? new Date(a.created_at) : null;
+      const when = created ? `${created.toLocaleString()} • ${timeAgo(a.created_at)}` : '';
+      const sender = a.sender_tag || '—';
+      const msg = (a.message || '').toString();
+      return `
+        <tr>
+          <td>${when}</td>
+          <td><span class="badge bg-secondary">${sender}</span></td>
+          <td class="text-truncate" style="max-width: 380px;">${msg}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Delta-fetch loader (since_id)
+  async function loadFeed() {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', FEED_LIMIT);
+      if (newestId) params.set('since_id', newestId);
+
+      const res = await fetch(`/messages.json?${params.toString()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json(); // either initial batch or only-new rows
+
+      if (!newestId) {
+        allRows = data;
+      } else if (data.length > 0) {
+        allRows = [...data, ...allRows];
+      }
+
+      // De-dupe by id, keep newest first, trim
+      const seen = new Set();
+      allRows = allRows.filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, FEED_LIMIT);
+
+      if (allRows.length > 0) {
+        newestId = allRows[0].id;
+      }
+
+      renderRows(allRows);
+      renderAlerts(allRows);
+
+      countEl.textContent = allRows.length.toString();
+      if (allRows.length > 0) {
+        const newest = new Date(allRows[0].created_at);
+        const ageSec = (Date.now() - newest.getTime())/1000;
+        setStatus(ageSec);
+        lastRecvEl.textContent = `last ${timeAgo(newest.toISOString())}`;
+      } else {
+        setStatus(NaN);
+        lastRecvEl.textContent = 'no messages yet';
+      }
+    } catch (e) {
+      setStatus(9999);
+      console.warn('Feed load failed:', e);
+    }
+  }
+
+  // Manual refresh + initial load
+  document.getElementById('refresh-btn').addEventListener('click', loadFeed);
+  loadFeed();
+
+  // Auto-poll every 1s (interval version)
+  let feedTimer = setInterval(loadFeed, POLL_MS);
+
+  // Pause polling when tab is hidden; resume when visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (feedTimer) { clearInterval(feedTimer); feedTimer = null; }
+    } else {
+      loadFeed();
+      if (!feedTimer) feedTimer = setInterval(loadFeed, POLL_MS);
+    }
+  });
+
+  // Optional: clear timers on page unload
+  window.addEventListener('beforeunload', () => {
+    if (feedTimer) clearInterval(feedTimer);
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  });
+})();
+</script>
