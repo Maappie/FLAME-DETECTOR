@@ -3,7 +3,7 @@ require "json"
 require "timeout"
 
 class MqttSubscriber
-  HOST="192.168.68.121"; PORT=1883; USER="iotuser"; PASS="emtech_broker"
+  HOST="192.168.68.145"; PORT=1883; USER="iotuser"; PASS="emtech_broker"
   TOPIC="site/lab1/ingest/rails"; QOS=1
 
   def self.start
