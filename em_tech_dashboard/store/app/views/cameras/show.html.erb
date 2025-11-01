@@ -107,7 +107,7 @@
       <div class="card shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between">
           <strong>Recent Alerts</strong>
-          <small class="text-muted">Show only if 3-second burst is detected</small>
+          <small class="text-muted">DB-backed: latest ≤10 from <code>/alerts.json</code></small>
         </div>
         <div class="card-body p-0">
           <table class="table table-sm align-middle mb-0">
@@ -119,7 +119,7 @@
               </tr>
             </thead>
             <tbody id="alerts-tbody">
-              <!-- populated from same /messages.json (filtered) -->
+              <!-- populated from /alerts.json -->
             </tbody>
           </table>
         </div>
@@ -127,9 +127,17 @@
     </div>
   </div>
 </div>
-
 <script>
 (function() {
+  // ===== Force Manila timezone for all displayed timestamps =====
+  const MANILA_TZ = 'Asia/Manila';
+  const dtfManila = new Intl.DateTimeFormat(undefined, {
+    timeZone: MANILA_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const fmtManila = (d) => d ? dtfManila.format(d) : '';
+
   // ===== MJPEG auto-reconnect + periodic refresh =====
   const img  = document.getElementById('mjpeg');
   const base = "<%= @stream_url %>";
@@ -165,7 +173,7 @@
 
   // ===== MQTT live panel (poll /messages.json) =====
   const FEED_LIMIT   = 20;
-  const POLL_MS      = 1000; // 1s polling
+  const POLL_MS      = 500; // can drop to 300–500ms later if you want faster UI
   const feedEl       = document.getElementById('mqtt-feed');
   const statusBadge  = document.getElementById('mqtt-status');
   const lastRecvEl   = document.getElementById('last-recv');
@@ -174,7 +182,7 @@
   const alertsBody   = document.getElementById('alerts-tbody');
   const badgeShadow  = document.getElementById('badge-shadow');
 
-  // Client-side cache & delta anchor
+  // Client-side cache & delta anchor (messages only)
   let allRows = [];          // newest -> oldest
   let newestId = null;       // last anchor for delta fetches
 
@@ -222,7 +230,7 @@
           <div class="d-flex justify-content-between align-items-start">
             <div class="me-2">
               <div class="fw-semibold">${sender}</div>
-              <div class="small text-muted">${created ? created.toLocaleString() : ''} • ${timeAgo(m.created_at)}</div>
+              <div class="small text-muted">${created ? fmtManila(created) : ''} • ${timeAgo(m.created_at)}</div>
             </div>
             <div>${nt}</div>
           </div>
@@ -232,52 +240,23 @@
     }).join('');
   }
 
-  // Helper: check for a 3s burst (>=1 msg in each of t, t+1, t+2 seconds)
-  function has3sBurst(startIso, rows) {
-    const startSec = Math.floor(new Date(startIso).getTime() / 1000);
-    const covered = new Set();
-    for (const r of rows) {
-      if (!r.created_at) continue;
-      const s = Math.floor(new Date(r.created_at).getTime() / 1000);
-      if (s >= startSec && s <= startSec + 2) covered.add(s);
-      if (covered.size === 3) break;
-    }
-    return covered.has(startSec) && covered.has(startSec + 1) && covered.has(startSec + 2);
-  }
+  // ===== Recent Alerts (DB-backed) =====
+  const ALERTS_POLL_MS = 500;  // poll server for latest alerts
+  const MAX_ALERT_ROWS = 10;   // render cap (server already limits to 10)
 
-  // Alerts table: show only when a 3s burst is present
-  function renderAlerts(rows){
-    // Candidate "fire" messages
-    const candidates = rows.filter(m => {
-      const lvl = (m.level || '').toString().toUpperCase();
-      const msg = (m.message || '').toString().toLowerCase();
-      return lvl.includes('FIRE') || msg.includes('fire') || msg.includes('flame');
-    });
+  function renderAlertsFromData(alerts){
+    // Alerts come newest-first. Each has: id, start_second, end_second, created_at, representative{...}
+    alertsBody.innerHTML = (alerts || []).slice(0, MAX_ALERT_ROWS).map(a => {
+      const rep = a.representative || {};
+      const whenDate = rep.created_at ? new Date(rep.created_at)
+                       : (a.start_second ? new Date(a.start_second * 1000) : null);
+      const whenText = whenDate ? `${fmtManila(whenDate)} • ${timeAgo(whenDate.toISOString())}` : '';
+      const sender = rep.sender_tag || '—';
+      const msg = (rep.message || '').toString();
 
-    // Keep only those that start a valid 3s burst
-    const seenStarts = new Set(); // dedupe by starting second
-    const qualifying = [];
-    for (const a of candidates) {
-      if (!a.created_at) continue;
-      const startSec = Math.floor(new Date(a.created_at).getTime() / 1000);
-      if (seenStarts.has(startSec)) continue;
-
-      // Count ANY messages in the 3s window; change to 'candidates' to count only fire-tagged.
-      if (has3sBurst(a.created_at, rows)) {
-        seenStarts.add(startSec);
-        qualifying.push(a);
-      }
-      if (qualifying.length >= 5) break; // show at most 5
-    }
-
-    alertsBody.innerHTML = qualifying.map(a => {
-      const created = a.created_at ? new Date(a.created_at) : null;
-      const when = created ? `${created.toLocaleString()} • ${timeAgo(a.created_at)}` : '';
-      const sender = a.sender_tag || '—';
-      const msg = (a.message || '').toString();
       return `
         <tr>
-          <td>${when}</td>
+          <td>${whenText}</td>
           <td><span class="badge bg-secondary">${sender}</span></td>
           <td class="text-truncate" style="max-width: 380px;">${msg}</td>
         </tr>
@@ -285,7 +264,19 @@
     }).join('');
   }
 
-  // Delta-fetch loader (since_id)
+  async function loadAlerts(){
+    try {
+      const res = await fetch(`/alerts.json`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      renderAlertsFromData(data);
+    } catch (e) {
+      console.warn('Alerts load failed:', e);
+      // keep last rendered alerts; no UI state flip needed
+    }
+  }
+
+  // ===== Loader: fetch + render messages =====
   async function loadFeed() {
     try {
       const params = new URLSearchParams();
@@ -294,7 +285,7 @@
 
       const res = await fetch(`/messages.json?${params.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json(); // either initial batch or only-new rows
+      const data = await res.json();
 
       if (!newestId) {
         allRows = data;
@@ -302,22 +293,21 @@
         allRows = [...data, ...allRows];
       }
 
-      // De-dupe by id, keep newest first, trim
-      const seen = new Set();
+      // De-dupe by id, keep newest first, trim feed list
+      const seenIds = new Set();
       allRows = allRows.filter(r => {
-        if (seen.has(r.id)) return false;
-        seen.add(r.id);
+        if (seenIds.has(r.id)) return false;
+        seenIds.add(r.id);
         return true;
       }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, FEED_LIMIT);
 
-      if (allRows.length > 0) {
-        newestId = allRows[0].id;
-      }
+      if (allRows.length > 0) newestId = allRows[0].id;
 
+      // Render live list
       renderRows(allRows);
-      renderAlerts(allRows);
 
+      // badges / counters
       countEl.textContent = allRows.length.toString();
       if (allRows.length > 0) {
         const newest = new Date(allRows[0].created_at);
@@ -335,25 +325,30 @@
   }
 
   // Manual refresh + initial load
-  document.getElementById('refresh-btn').addEventListener('click', loadFeed);
+  refreshBtn.addEventListener('click', () => { loadFeed(); loadAlerts(); });
   loadFeed();
+  loadAlerts();
 
-  // Auto-poll every 1s (interval version)
-  let feedTimer = setInterval(loadFeed, POLL_MS);
+  // Auto-poll
+  let feedTimer   = setInterval(loadFeed,   POLL_MS);
+  let alertsTimer = setInterval(loadAlerts, ALERTS_POLL_MS);
 
   // Pause polling when tab is hidden; resume when visible
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      if (feedTimer) { clearInterval(feedTimer); feedTimer = null; }
+      if (feedTimer)   { clearInterval(feedTimer);   feedTimer = null; }
+      if (alertsTimer) { clearInterval(alertsTimer); alertsTimer = null; }
     } else {
-      loadFeed();
-      if (!feedTimer) feedTimer = setInterval(loadFeed, POLL_MS);
+      loadFeed();  loadAlerts();
+      if (!feedTimer)   feedTimer   = setInterval(loadFeed,   POLL_MS);
+      if (!alertsTimer) alertsTimer = setInterval(loadAlerts, ALERTS_POLL_MS);
     }
   });
 
   // Optional: clear timers on page unload
   window.addEventListener('beforeunload', () => {
-    if (feedTimer) clearInterval(feedTimer);
+    if (feedTimer)   clearInterval(feedTimer);
+    if (alertsTimer) clearInterval(alertsTimer);
     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   });
 })();

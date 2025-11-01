@@ -1,0 +1,54 @@
+<!-- app/views/alert_receipts/show.html.erb -->
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Alert #<%= @alert_receipt.alert_id || @alert_receipt.id %></h3>
+    <div class="d-flex gap-2">
+      <%= link_to "Back", alert_receipts_path, class: "btn btn-sm btn-outline-secondary" %>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Details</h5>
+          <dl class="row mb-0">
+            <dt class="col-sm-3">Alert ID</dt>
+            <dd class="col-sm-9"><code><%= @alert_receipt.alert_id || "—" %></code></dd>
+
+            <dt class="col-sm-3">Sender</dt>
+            <dd class="col-sm-9">
+              <span class="badge bg-secondary"><%= @alert_receipt.sender_tag || "—" %></span>
+            </dd>
+
+            <dt class="col-sm-3">Alert At</dt>
+            <dd class="col-sm-9"><%= @alert_receipt.alert_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></dd>
+
+            <dt class="col-sm-3">Received At</dt>
+            <dd class="col-sm-9"><%= (@alert_receipt.received_at || @alert_receipt.created_at).strftime("%Y-%m-%d %H:%M:%S") %></dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mt-3">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Message</h5>
+          <pre class="mb-0" style="white-space: pre-wrap;"><%= @alert_receipt.message.presence || "—" %></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Meta</h5>
+          <ul class="list-unstyled mb-0">
+            <li><strong>Record ID:</strong> <%= @alert_receipt.id %></li>
+            <li><strong>Created:</strong> <%= @alert_receipt.created_at.strftime("%Y-%m-%d %H:%M:%S") %></li>
+            <li><strong>Updated:</strong> <%= @alert_receipt.updated_at.strftime("%Y-%m-%d %H:%M:%S") %></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

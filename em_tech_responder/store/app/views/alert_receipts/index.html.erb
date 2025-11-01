@@ -1,0 +1,42 @@
+<!-- app/views/alert_receipts/index.html.erb -->
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Incoming Fire Alerts</h3>
+    <%= link_to "Refresh", request.path, class: "btn btn-sm btn-outline-primary" %>
+  </div>
+
+  <% if @alert_receipts.any? %>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Sender</th>
+            <th scope="col">Message</th>
+            <th scope="col">Alert At</th>
+            <th scope="col">Received</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @alert_receipts.each do |r| %>
+            <tr>
+              <td><code><%= r.alert_id || "—" %></code></td>
+              <td><span class="badge bg-secondary"><%= r.sender_tag || "—" %></span></td>
+              <td class="text-truncate" style="max-width: 360px;"><%= r.message.presence || "—" %></td>
+              <td><%= r.alert_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></td>
+              <td><%= r.received_at&.strftime("%Y-%m-%d %H:%M:%S") || r.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+              <td class="text-end">
+                <%= link_to "View", alert_receipt_path(r), class: "btn btn-sm btn-outline-secondary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="alert alert-info">
+      No alerts yet. Send a POST to <code>/alert_hooks/fire</code> to see items appear here.
+    </div>
+  <% end %>
+</div>

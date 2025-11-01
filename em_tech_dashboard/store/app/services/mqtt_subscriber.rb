@@ -3,7 +3,7 @@ require "json"
 require "timeout"
 
 class MqttSubscriber
-  HOST="192.168.68.137"; PORT=1883; USER="iotuser"; PASS="emtech_broker"
+  HOST="192.168.68.121"; PORT=1883; USER="iotuser"; PASS="emtech_broker"
   TOPIC="site/lab1/ingest/rails"; QOS=1
 
   def self.start
@@ -41,14 +41,18 @@ class MqttSubscriber
     end
   end
 
+# services/mqtt_subscriber.rb (only the save method changed at the bottom)
   def self.save_payload(payload)
     d = JSON.parse(payload) rescue {"message" => payload.to_s}
 
-    Message.create!(
+    msg = Message.create!(
       sender_tag:  d["sender_tag"],
       message:     d["message"] || d["text"] || d["msg"],
       raw_payload: payload
     )
+
+    # Kick the DB-side detector
+    AlertDetector.process_new_message(msg)
   rescue => e
     puts "[MQTT] save failed: #{e.class}: #{e.message}"
   end

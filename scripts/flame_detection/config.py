@@ -45,7 +45,7 @@ MQTT_ENABLE_ESP32 = True
 MQTT_ENABLE_RAILS = True  # keep False for now; flip to True when ready
 
 # Broker settings (point ESP32 + Rails to the same broker)
-MQTT_HOST = "192.168.68.137"   # your laptop LAN IP
+MQTT_HOST = "192.168.68.121"   # your laptop LAN IP
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 30
 MQTT_USER = "iotuser"

@@ -3,6 +3,8 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  config.x.alerts.webhook_url = "http://127.0.0.1:4000/alert_hooks/fire"
+
   # Code is not reloaded between requests.
   config.enable_reloading = false
 

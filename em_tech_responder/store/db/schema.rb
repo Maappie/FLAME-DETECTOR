@@ -10,24 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_31_230012) do
-  create_table "alerts", force: :cascade do |t|
-    t.integer "start_second", null: false
-    t.integer "end_second", null: false
-    t.bigint "rep_message_id"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["end_second"], name: "index_alerts_on_end_second"
-    t.index ["start_second"], name: "index_alerts_on_start_second", unique: true
-  end
-
-  create_table "messages", force: :cascade do |t|
+ActiveRecord::Schema[8.0].define(version: 2025_11_01_034321) do
+  create_table "alert_receipts", force: :cascade do |t|
+    t.integer "alert_id"
     t.string "sender_tag"
     t.text "message"
-    t.text "raw_payload"
+    t.datetime "alert_at"
+    t.datetime "received_at"
     t.datetime "created_at", null: false
-    t.index ["created_at", "id"], name: "index_messages_on_created_at_and_id"
+    t.datetime "updated_at", null: false
   end
-
-  add_foreign_key "alerts", "messages", column: "rep_message_id"
 end
