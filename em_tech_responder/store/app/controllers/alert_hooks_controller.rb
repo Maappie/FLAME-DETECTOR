@@ -1,12 +1,18 @@
 # app/controllers/alert_hooks_controller.rb
 class AlertHooksController < ApplicationController
+  # Webhook: no CSRF token expected (machine-to-machine)
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
 
+  before_action :verify_em_signature!
+
   def fire
+    raw = request.body.read
+    request.body.rewind
+
     payload =
       if request.content_type.to_s.include?("application/json")
-        JSON.parse(request.body.read) rescue {}
+        JSON.parse(raw) rescue {}
       else
         params.to_unsafe_h
       end
@@ -18,7 +24,6 @@ class AlertHooksController < ApplicationController
     message    = alert["message"]
     created_at = alert["created_at"]
 
-    # Parse created_at safely (avoid inline `rescue` in kwargs)
     parsed_alert_at =
       begin
         created_at.present? ? Time.iso8601(created_at) : nil
@@ -38,5 +43,46 @@ class AlertHooksController < ApplicationController
   rescue => e
     Rails.logger.warn { "[AlertHooks] error: #{e.class}: #{e.message}" }
     render json: { ok: false, error: e.message }, status: :bad_request
+  end
+
+  private
+
+  # Verifies HMAC signature:
+  #   expected = "sha256=" + HMAC_SHA256(secret, "#{timestamp}.#{raw_body}")
+  #   timestamp must be within ±5 minutes
+  def verify_em_signature!
+    secret = Rails.configuration.x.try(:alerts).try(:webhook_secret)
+    return true if secret.blank? # allow dev if you intentionally left it empty
+
+    ts  = request.get_header("HTTP_X_EM_TIMESTAMP").to_s
+    sig = request.get_header("HTTP_X_EM_SIGNATURE").to_s # "sha256=...."
+    raw = request.body.read
+    request.body.rewind
+
+    if ts.blank? || sig.blank? || !sig.start_with?("sha256=")
+      render json: { ok: false, error: "missing headers" }, status: :unauthorized and return
+    end
+
+    begin
+      tsi = Integer(ts)
+      if (Time.now.to_i - tsi).abs > 300
+        render json: { ok: false, error: "stale timestamp" }, status: :unauthorized and return
+      end
+    rescue
+      render json: { ok: false, error: "bad timestamp" }, status: :unauthorized and return
+    end
+
+    expected = "sha256=" + OpenSSL::HMAC.hexdigest("SHA256", secret, "#{ts}.#{raw}")
+
+    unless secure_compare(sig, expected)
+      render json: { ok: false, error: "bad signature" }, status: :unauthorized and return
+    end
+  end
+
+  # Constant-time compare
+  def secure_compare(a, b)
+    ActiveSupport::SecurityUtils.secure_compare(a.to_s, b.to_s)
+  rescue
+    false
   end
 end

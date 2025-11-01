@@ -1,0 +1,30 @@
+<% msg = (r.message || "") %>
+<% sev =
+    if msg.match?(/fire/i) then "critical"
+    elsif msg.match?(/smoke|heat|overheat/i) then "warning"
+    else "info"
+    end %>
+
+<tr id="<%= dom_id(r) %>" class="alert-row"
+    data-severity="<%= sev %>"
+    data-sender="<%= r.sender_tag.to_s.downcase %>"
+    data-message="<%= msg.downcase %>"
+    data-created="<%= r.created_at.to_i %>">
+  <td><code><%= r.alert_id || "—" %></code></td>
+  <td><span class="badge bg-secondary"><%= r.sender_tag || "—" %></span></td>
+  <td>
+    <% if sev == "critical" %>
+      <span class="badge bg-danger">CRITICAL</span>
+    <% elsif sev == "warning" %>
+      <span class="badge bg-warning text-dark">WARNING</span>
+    <% else %>
+      <span class="badge bg-info text-dark">INFO</span>
+    <% end %>
+  </td>
+  <td class="text-truncate" style="max-width: 420px;"><%= msg.presence || "—" %></td>
+  <td class="manila-time" data-timestamp="<%= (r.alert_at || r.created_at).iso8601 %>"></td>
+  <td class="manila-time" data-timestamp="<%= (r.received_at || r.created_at).iso8601 %>"></td>
+  <td class="text-end">
+    <%= link_to "View", alert_receipt_path(r), class: "btn btn-sm btn-outline-secondary" %>
+  </td>
+</tr>

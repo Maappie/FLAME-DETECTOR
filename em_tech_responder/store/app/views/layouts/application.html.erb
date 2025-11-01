@@ -1,28 +1,66 @@
+<!-- app/views/layouts/application.html.erb -->
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Store" %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <title>EMTech Responder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%= action_cable_meta_tag %> <!-- needed for WebSocket /cable -->
 
-    <%= yield :head %>
+    <!-- Bootstrap 5 CSS (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <!-- Bootstrap Icons (for alert glyphs) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <!-- App styles -->
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <!-- Load Turbo + app JS (Rails 8 importmap) -->
     <%= javascript_importmap_tags %>
+
+    <!-- Keep your emergency dashboard design -->
+    <style>
+      body { background: #0b0d12; color: #e9ecef; }
+      .navbar-brand { letter-spacing: .5px; }
+      .card { background: #141824; color: #e9ecef; }
+      .table { --bs-table-bg: transparent; --bs-table-color: #e9ecef; }
+      .table-dark { background: #0f1320; }
+      .badge.bg-secondary { background:#3b3f51 !important; }
+      .btn-outline-secondary, .btn-outline-primary { border-width:1.5px; }
+      a, a:visited { color: #9ec5fe; }
+    </style>
   </head>
 
   <body>
+    <nav class="navbar navbar-dark navbar-expand-sm" style="background:#0f1320;border-bottom:1px solid #1f2536;">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <i class="bi bi-fire"></i> EMTech Responder
+        </a>
+      </div>
+    </nav>
+
     <%= yield %>
+
+    <!-- Bootstrap 5 JS bundle (Popper included) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+            crossorigin="anonymous"></script>
+
+    <!-- Support Turbo page changes: run page scripts on DOMContentLoaded **and** turbo:load -->
+    <script nonce="<%= content_security_policy_nonce %>">
+      (function(){
+        function runAll(){
+          if (window.EMTECH && typeof window.EMTECH.init === 'function') window.EMTECH.init();
+          document.dispatchEvent(new Event("emtech:page-ready"));
+        }
+        document.addEventListener("DOMContentLoaded", runAll);
+        document.addEventListener("turbo:load", runAll);
+      })();
+    </script>
   </body>
 </html>

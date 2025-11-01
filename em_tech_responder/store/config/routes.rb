@@ -8,5 +8,8 @@ Rails.application.routes.draw do
 
   # Optional: make the list the homepage
   root "alert_receipts#index"
+
+  # Turbo
+  mount ActionCable.server => "/cable"
   
 end
