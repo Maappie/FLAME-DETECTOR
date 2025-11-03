@@ -7,4 +7,6 @@ Rails.application.routes.draw do
 
   resources :alerts, only: [:index]
 
+  mount ActionCable.server => "/cable"
+
 end

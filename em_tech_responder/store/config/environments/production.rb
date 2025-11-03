@@ -4,7 +4,10 @@ Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   config.x.alerts.webhook_secret = "EMTECH_http_sending_token_key123"
-
+  # 🔧 ESP32 webhook endpoints
+  config.x.esp32.endpoint = "http://192.168.68.145:8080/alert"
+  config.x.esp32.fallback_endpoint = "http://192.168.4.11:8080/alert"
+  
   # Code is not reloaded between requests.
   config.enable_reloading = false
 

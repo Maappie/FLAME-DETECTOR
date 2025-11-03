@@ -9,7 +9,7 @@ test:
   adapter: test
 
 production:
-  adapter: solid_cable
+  adapter: redis
   connects_to:
     database:
       writing: cable

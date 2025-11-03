@@ -1,9 +1,7 @@
 # app/controllers/alert_hooks_controller.rb
 class AlertHooksController < ApplicationController
-  # Webhook: no CSRF token expected (machine-to-machine)
   protect_from_forgery with: :null_session
   skip_before_action :verify_authenticity_token
-
   before_action :verify_em_signature!
 
   def fire
@@ -39,6 +37,9 @@ class AlertHooksController < ApplicationController
       received_at: Time.current
     )
 
+    # 👇 call service object
+    Esp32Notify.call(sender_tag: sender_tag, message: message)
+
     render json: { ok: true }, status: :ok
   rescue => e
     Rails.logger.warn { "[AlertHooks] error: #{e.class}: #{e.message}" }
@@ -47,15 +48,12 @@ class AlertHooksController < ApplicationController
 
   private
 
-  # Verifies HMAC signature:
-  #   expected = "sha256=" + HMAC_SHA256(secret, "#{timestamp}.#{raw_body}")
-  #   timestamp must be within ±5 minutes
   def verify_em_signature!
     secret = Rails.configuration.x.try(:alerts).try(:webhook_secret)
-    return true if secret.blank? # allow dev if you intentionally left it empty
+    return true if secret.blank?
 
     ts  = request.get_header("HTTP_X_EM_TIMESTAMP").to_s
-    sig = request.get_header("HTTP_X_EM_SIGNATURE").to_s # "sha256=...."
+    sig = request.get_header("HTTP_X_EM_SIGNATURE").to_s
     raw = request.body.read
     request.body.rewind
 
@@ -73,13 +71,11 @@ class AlertHooksController < ApplicationController
     end
 
     expected = "sha256=" + OpenSSL::HMAC.hexdigest("SHA256", secret, "#{ts}.#{raw}")
-
     unless secure_compare(sig, expected)
       render json: { ok: false, error: "bad signature" }, status: :unauthorized and return
     end
   end
 
-  # Constant-time compare
   def secure_compare(a, b)
     ActiveSupport::SecurityUtils.secure_compare(a.to_s, b.to_s)
   rescue

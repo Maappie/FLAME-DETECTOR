@@ -91,7 +91,7 @@
       <div class="card shadow-sm mb-3">
         <div class="card-header d-flex align-items-center justify-content-between">
           <strong>MQTT Live (latest)</strong>
-          <small class="text-muted">Polling <code>/messages.json</code> every 1s</small>
+          <small class="text-muted">Polling <code>/messages.json</code> every 5s</small>
         </div>
         <div class="card-body p-0">
           <div class="list-group list-group-flush" id="mqtt-feed" style="max-height: 52vh; overflow:auto;">
@@ -173,7 +173,7 @@
 
   // ===== MQTT live panel (poll /messages.json) =====
   const FEED_LIMIT   = 20;
-  const POLL_MS      = 500; // can drop to 300–500ms later if you want faster UI
+  const POLL_MS      = 5000; // can drop to 300–500ms later if you want faster UI
   const feedEl       = document.getElementById('mqtt-feed');
   const statusBadge  = document.getElementById('mqtt-status');
   const lastRecvEl   = document.getElementById('last-recv');

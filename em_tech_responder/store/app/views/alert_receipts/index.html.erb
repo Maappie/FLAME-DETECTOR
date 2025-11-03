@@ -21,34 +21,41 @@
 
   <!-- KPI Row -->
   <div class="row g-3 mb-3">
+    <!-- 🧯 Total Alerts -->
     <div class="col-12 col-md-3">
       <div class="card border-0 shadow-sm h-100 kpi-card kpi-danger">
-        <div class="card-body">
-          <div class="text-uppercase small text-muted">Total Alerts</div>
-          <div class="fs-4 fw-bold"><%= @alert_receipts.size %></div>
+        <div class="card-body text-center">
+          <div class="text-uppercase small fw-bold text-white">Total Alerts</div>
+          <div class="fs-3 fw-bold text-danger"><%= @alert_receipts.size %></div>
         </div>
       </div>
     </div>
+
+    <!-- ⏰ Alerts in Last 24 Hours -->
     <div class="col-12 col-md-3">
       <div class="card border-0 shadow-sm h-100 kpi-card">
-        <div class="card-body">
-          <div class="text-uppercase small text-muted">Last 24h</div>
-          <div class="fs-4 fw-bold"><%= @alert_receipts.count { |r| r.created_at >= 24.hours.ago } %></div>
+        <div class="card-body text-center">
+          <div class="text-uppercase small fw-bold text-white">Alerts (Last 24h)</div>
+          <div class="fs-3 fw-bold"><%= @alert_receipts.count { |r| r.created_at >= 24.hours.ago } %></div>
         </div>
       </div>
     </div>
+
+    <!-- 📡 Unique Senders -->
     <div class="col-12 col-md-3">
       <div class="card border-0 shadow-sm h-100 kpi-card">
-        <div class="card-body">
-          <div class="text-uppercase small text-muted">Unique Senders</div>
-          <div class="fs-4 fw-bold"><%= @alert_receipts.map(&:sender_tag).compact.uniq.size %></div>
+        <div class="card-body text-center">
+          <div class="text-uppercase small fw-bold text-white">Unique Senders</div>
+          <div class="fs-3 fw-bold"><%= @alert_receipts.map(&:sender_tag).compact.uniq.size %></div>
         </div>
       </div>
     </div>
+
+    <!-- 🕒 Most Recent Alert -->
     <div class="col-12 col-md-3">
       <div class="card border-0 shadow-sm h-100 kpi-card">
-        <div class="card-body">
-          <div class="text-uppercase small text-muted">Most Recent</div>
+        <div class="card-body text-center">
+          <div class="text-uppercase small fw-bold text-white">Most Recent Alert</div>
           <div class="fs-6 fw-semibold text-nowrap manila-time"
                data-timestamp="<%= (@alert_receipts.first&.created_at || Time.current).iso8601 %>">
           </div>
@@ -61,20 +68,11 @@
   <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
       <form class="row g-2 align-items-end" id="filters-form" onsubmit="return false;">
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6">
           <label class="form-label small text-muted">Search (sender/message)</label>
-          <input type="search" class="form-control" id="q" placeholder="e.g. camera-1, FIRE, smoke">
+          <input type="search" class="form-control" id="q" placeholder="e.g. camera-1, fire, smoke">
         </div>
         <div class="col-6 col-md-3">
-          <label class="form-label small text-muted">Severity</label>
-          <select class="form-select" id="severity">
-            <option value="">All</option>
-            <option value="critical">Critical (FIRE)</option>
-            <option value="warning">Warning (SMOKE/HEAT)</option>
-            <option value="info">Info</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-2">
           <label class="form-label small text-muted">Since (hrs)</label>
           <select class="form-select" id="since">
             <option value="">Any</option>
@@ -83,9 +81,6 @@
             <option value="24">24h</option>
             <option value="48">48h</option>
           </select>
-        </div>
-        <div class="col-12 col-md-3 text-end">
-          <button class="btn btn-outline-secondary" id="clear-filters">Clear</button>
         </div>
       </form>
     </div>
@@ -98,7 +93,6 @@
           <tr>
             <th scope="col">Alert ID</th>
             <th scope="col">Sender</th>
-            <th scope="col">Severity</th>
             <th scope="col">Message</th>
             <th scope="col">Alert At (Manila)</th>
             <th scope="col">Received (Manila)</th>
@@ -117,14 +111,14 @@
   <% end %>
 </div>
 
-<!-- Minimal emergency accent styling (works with dark layout) -->
+<!-- Minimal emergency accent styling -->
 <style>
   .kpi-card { border-left: 6px solid #dee2e6; }
   .kpi-danger { border-left-color: #dc3545; }
   .text-truncate { max-width: 420px; }
 </style>
 
-<!-- JS: Manila time, filters; also handle rows inserted by Turbo Streams -->
+<!-- JS: Manila time, filters, refresh -->
 <script nonce="<%= content_security_policy_nonce %>">
 (function() {
   const EM = (window.EMTECH = window.EMTECH || {});
@@ -136,8 +130,10 @@
 
   function renderManilaTimes(root = document) {
     root.querySelectorAll(".manila-time").forEach(el => {
-      const iso = el.getAttribute("data-timestamp"); if (!iso) return;
-      const d = new Date(iso); if (isNaN(d.getTime())) { el.textContent = "—"; return; }
+      const iso = el.getAttribute("data-timestamp");
+      if (!iso) return;
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) { el.textContent = "—"; return; }
       el.textContent = fmt.format(d);
       el.title = d.toISOString();
     });
@@ -145,17 +141,14 @@
 
   function applyFilters() {
     const q = (document.getElementById("q")?.value || "").trim().toLowerCase();
-    const sev = document.getElementById("severity")?.value || "";
     const since = document.getElementById("since")?.value || "";
     const cutoff = since ? (Date.now()/1000 - Number(since)*3600) : null;
 
     document.querySelectorAll("#alerts-table tbody tr.alert-row").forEach(tr => {
-      const rowSev = tr.getAttribute("data-severity");
       const rowSender = tr.getAttribute("data-sender");
       const rowMsg = tr.getAttribute("data-message");
       const createdAt = Number(tr.getAttribute("data-created") || "0");
       let show = true;
-      if (sev && rowSev !== sev) show = false;
       if (cutoff && createdAt < cutoff) show = false;
       if (q && !(rowSender.includes(q) || rowMsg.includes(q))) show = false;
       tr.style.display = show ? "" : "none";
@@ -163,18 +156,9 @@
   }
 
   function setupFilters() {
-    ["q","severity","since"].forEach(id => {
+    ["q","since"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", applyFilters);
-    });
-    const clear = document.getElementById("clear-filters");
-    if (clear) clear.addEventListener("click", (e) => {
-      e.preventDefault();
-      ["q","severity","since"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-      });
-      applyFilters();
     });
   }
 
@@ -183,7 +167,6 @@
     if (btn) btn.addEventListener("click", () => window.location.reload());
   }
 
-  // When Turbo Stream injects new HTML, format any times inside it
   document.addEventListener("turbo:before-stream-render", (ev) => {
     const fragment = ev.detail?.newStream?.templateElement?.content || null;
     if (fragment) renderManilaTimes(fragment);
