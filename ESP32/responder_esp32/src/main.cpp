@@ -3,11 +3,12 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 
-#define WIFI_SSID     "Fake Extender"
-#define WIFI_PASSWORD "Aa1231325213!"
+#define WIFI_SSID     "PLM_WIFI"
+#define WIFI_PASSWORD "PLMh@ribon"
 
 int update = 5000;
 int last_update = 0;
+int led_test = 16;
 
 WebServer server(8080);  // same port as in Rails config
 

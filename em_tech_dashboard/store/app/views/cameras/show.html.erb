@@ -1,6 +1,4 @@
-<!-- app/views/cameras/show.html.erb -->
 <div class="container-fluid py-3">
-  <!-- Top bar -->
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="d-flex align-items-center gap-3">
       <h3 class="mb-0">Fire Monitor</h3>
@@ -8,7 +6,7 @@
         <span class="badge bg-secondary">Rails</span>
         <span class="badge bg-secondary">YOLO</span>
         <span class="badge bg-secondary">MQTT</span>
-        <span id="mqtt-status" class="badge bg-warning text-dark">Waiting…</span>
+        <span id="mqtt-status" class="badge bg-dark text-dark">Waiting…</span>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -16,10 +14,9 @@
     </div>
   </div>
 
-  <!-- KPI mini-cards -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
-      <div class="card shadow-sm h-100">
+      <div class="card shadow-sm h-100 text-bg-dark">
         <div class="card-body">
           <div class="text-muted small">Latest Message</div>
           <div id="last-recv" class="fs-5">no messages yet</div>
@@ -27,7 +24,7 @@
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="card shadow-sm h-100">
+      <div class="card shadow-sm h-100 text-bg-dark">
         <div class="card-body">
           <div class="text-muted small">Feed Count (visible)</div>
           <div id="feed-count" class="fs-5">0</div>
@@ -35,7 +32,7 @@
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="card shadow-sm h-100">
+      <div class="card shadow-sm h-100 text-bg-dark">
         <div class="card-body">
           <div class="text-muted small">Stream Health</div>
           <div id="stream-health" class="fs-5">checking…</div>
@@ -43,7 +40,7 @@
       </div>
     </div>
     <div class="col-6 col-lg-3">
-      <div class="card shadow-sm h-100">
+      <div class="card shadow-sm h-100 text-bg-dark">
         <div class="card-body">
           <div class="text-muted small">MQTT Topic</div>
           <div class="fs-6"><code>site/lab1/ingest/rails</code></div>
@@ -52,17 +49,14 @@
     </div>
   </div>
 
-  <!-- Main split: smaller camera on the left -->
   <div class="row g-3">
-    <!-- Left (smaller): Camera + quick controls -->
     <div class="col-12 col-lg-5">
-      <div class="card shadow-sm mb-3">
+      <div class="card shadow-sm mb-3 text-bg-dark">
         <div class="card-header d-flex align-items-center justify-content-between">
           <strong>Live Feed</strong>
           <small class="text-muted">stream.py must be running & token must match</small>
         </div>
         <div class="card-body">
-          <!-- Portrait box, capped size -->
           <div class="rounded overflow-hidden bg-black mx-auto"
                style="aspect-ratio:3/4; width:min(420px, 90vw); max-height:80vh;">
             <img id="mjpeg" src="<%= @stream_url %>"
@@ -72,31 +66,29 @@
         </div>
       </div>
 
-      <div class="card shadow-sm">
+      <div class="card shadow-sm text-bg-dark">
         <div class="card-header">
           <strong>Camera Controls</strong>
         </div>
         <div class="card-body">
           <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-secondary btn-sm" onclick="forceReloadStream()">Reload Stream</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="toggleAutoRefresh()">Toggle Auto-Refresh</button>
+            <button class="btn btn-outline-light btn-sm" onclick="forceReloadStream()">Reload Stream</button>
+            <button class="btn btn-outline-light btn-sm" onclick="toggleAutoRefresh()">Toggle Auto-Refresh</button>
           </div>
           <div class="text-muted small mt-2">Tip: if the MJPEG hangs, reload. If it keeps failing, your token or host is wrong.</div>
         </div>
       </div>
     </div>
 
-    <!-- Right (larger): MQTT live + recent alerts -->
     <div class="col-12 col-lg-7">
-      <div class="card shadow-sm mb-3">
+      <div class="card shadow-sm mb-3 text-bg-dark">
         <div class="card-header d-flex align-items-center justify-content-between">
           <strong>MQTT Live (latest)</strong>
           <small class="text-muted">Polling <code>/messages.json</code> every 5s</small>
         </div>
         <div class="card-body p-0">
           <div class="list-group list-group-flush" id="mqtt-feed" style="max-height: 52vh; overflow:auto;">
-            <!-- rows injected here -->
-          </div>
+            </div>
         </div>
         <div class="card-footer d-flex align-items-center justify-content-between">
           <small class="text-muted">Topic: <code>site/lab1/ingest/rails</code></small>
@@ -104,14 +96,14 @@
         </div>
       </div>
 
-      <div class="card shadow-sm">
+      <div class="card shadow-sm text-bg-dark">
         <div class="card-header d-flex align-items-center justify-content-between">
           <strong>Recent Alerts</strong>
           <small class="text-muted">DB-backed: latest ≤10 from <code>/alerts.json</code></small>
         </div>
         <div class="card-body p-0">
           <table class="table table-sm align-middle mb-0">
-            <thead class="table-light">
+            <thead class="table-dark">
               <tr>
                 <th style="width:28%;">When</th>
                 <th style="width:28%;">Sender</th>
@@ -119,8 +111,7 @@
               </tr>
             </thead>
             <tbody id="alerts-tbody">
-              <!-- populated from /alerts.json -->
-            </tbody>
+              </tbody>
           </table>
         </div>
       </div>
@@ -195,6 +186,7 @@
   }
 
   function setStatus(ageSec) {
+    // This badge is on the main black background, so its colors are fine.
     if (isNaN(ageSec)) {
       statusBadge.className = "badge bg-warning text-dark";
       statusBadge.textContent = "Waiting…";
@@ -218,13 +210,16 @@
 
   function renderRows(rows){
     feedEl.innerHTML = rows.map(m => {
-      const tz = m.zone ? `<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle me-1">${m.zone}</span>` : "";
-      const lvl = m.level ? `<span class="badge bg-dark-subtle text-dark-emphasis border border-dark-subtle me-1">${m.level}</span>` : "";
+      // *** MODIFIED ***
+      // These badges are inside the RED card, so they need to be light.
+      const tz = m.zone ? `<span class="badge bg-light text-danger me-1">${m.zone}</span>` : "";
+      const lvl = m.level ? `<span class="badge bg-light text-dark me-1">${m.level}</span>` : "";
       const nt = m.nonce ? `<code class="text-muted">${m.nonce}</code>` : "";
       const sender = m.sender_tag || 'unknown';
       const msg = (m.message || '').toString();
       const created = m.created_at ? new Date(m.created_at) : null;
 
+      // The list-group-item will be dark thanks to `data-bs-theme="dark"`
       return `
         <div class="list-group-item">
           <div class="d-flex justify-content-between align-items-start">
@@ -254,10 +249,12 @@
       const sender = rep.sender_tag || '—';
       const msg = (rep.message || '').toString();
 
+      // *** MODIFIED ***
+      // This badge is inside the BLUE card, so make it light.
       return `
         <tr>
           <td>${whenText}</td>
-          <td><span class="badge bg-secondary">${sender}</span></td>
+          <td><span class="badge bg-light text-dark">${sender}</span></td>
           <td class="text-truncate" style="max-width: 380px;">${msg}</td>
         </tr>
       `;

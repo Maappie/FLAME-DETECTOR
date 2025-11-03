@@ -10,7 +10,7 @@ TARGETS: Sequence[Sequence[str]] = [
     ["scripts.flame_detection.main"],                 # python -m scripts.flame_detection.main
     ["scripts.system_setup.broker_start", "run"],     # python -m scripts.system_setup.broker_start run
     ["scripts.system_setup.record_mqtt"],             # python -m scripts.system_setup.record_mqtt
-  #  ["scripts.flame_detection.stream"],               # python -m scripts.flame_detection.stream
+    ["scripts.flame_detection.stream"],               # python -m scripts.flame_detection.stream
 ]
 
 LAUNCH_DELAY_SEC = 0.3  # small stagger so windows open cleanly

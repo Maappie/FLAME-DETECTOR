@@ -4,7 +4,7 @@ class CamerasController < ApplicationController
   def show
     @stream_url = ENV.fetch(
       "YOLO_STREAM_URL",
-      "http://192.168.68.121:5001/stream.mjpg?token=dev-secret-123"
+      "http://172.20.63.240:5001/stream.mjpg?token=dev-secret-123"
     )
     # If you already persist messages, load the latest ones here:
     # @messages = Message.order(created_at: :desc).limit(50)

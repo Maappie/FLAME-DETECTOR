@@ -3,10 +3,10 @@
 #include <PubSubClient.h>
 
 // ====== EDIT THESE (Wi-Fi / MQTT) ======
-const char* WIFI_SSID    = "Fake Extender";
-const char* WIFI_PASS    = "Aa1231325213!";
+const char* WIFI_SSID    = "PLM_WIFI";
+const char* WIFI_PASS    = "PLMh@ribon";
 
-const char* MQTT_HOST    = "192.168.68.103";   // broker (your laptop) LAN IP
+const char* MQTT_HOST    = "172.20.63.240";   // broker (your laptop) LAN IP
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_USER    = "iotuser";
 const char* MQTT_PASS    = "emtech_broker";

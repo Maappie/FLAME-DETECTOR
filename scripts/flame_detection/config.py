@@ -35,7 +35,7 @@ NUM_BG = (0, 0, 0)           # background box
 NUM_THICKNESS = 2
 
 # --- ORIENTATION ---
-FORCE_PORTRAIT = True          # set False to keep native landscape
+FORCE_PORTRAIT = False          # set False to keep native landscape
 # Options: 'cw' (90° clockwise), 'ccw' (90° counter-clockwise), '180'
 ROTATE_DIRECTION = 'cw'
 
@@ -45,7 +45,7 @@ MQTT_ENABLE_ESP32 = True
 MQTT_ENABLE_RAILS = True  # keep False for now; flip to True when ready
 
 # Broker settings (point ESP32 + Rails to the same broker)
-MQTT_HOST = "192.168.68.121"   # your laptop LAN IP
+MQTT_HOST = "172.20.63.240"   # your laptop LAN IP
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 30
 MQTT_USER = "iotuser"
