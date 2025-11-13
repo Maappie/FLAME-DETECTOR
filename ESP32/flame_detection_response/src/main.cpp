@@ -3,10 +3,10 @@
 #include <PubSubClient.h>
 
 // ====== EDIT THESE (Wi-Fi / MQTT) ======
-const char* WIFI_SSID    = "PLM_WIFI";
-const char* WIFI_PASS    = "PLMh@ribon";
+const char* WIFI_SSID    = "Fake Extenders";
+const char* WIFI_PASS    = "Aa1231325213!";
 
-const char* MQTT_HOST    = "172.20.63.240";   // broker (your laptop) LAN IP
+const char* MQTT_HOST    = "10.129.97.65";   // broker (your laptop) LAN IP
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_USER    = "iotuser";
 const char* MQTT_PASS    = "emtech_broker";
@@ -58,13 +58,13 @@ static inline bool anyLatched() {
 }
 
 static inline void updateSprinkler() {
-  digitalWrite(SPRINKLER_PIN, anyLatched() ? HIGH : LOW);
+  digitalWrite(SPRINKLER_PIN, anyLatched() ? LOW : HIGH);
 }
 
 // Unified write for frames + sprinkler mirror
 static inline void applyFrameState(Zone z, bool on) {
   if (z == Z_NONE) return;
-  digitalWrite(ZONE_PINS[z], on ? HIGH : LOW);
+  digitalWrite(ZONE_PINS[z], on ? LOW : HIGH);
   latched[z] = on;
   updateSprinkler();
 }
@@ -200,12 +200,12 @@ void setup() {
   // frame pins
   for (int i = 0; i < ZONE_COUNT; ++i) {
     pinMode(ZONE_PINS[i], OUTPUT);
-    digitalWrite(ZONE_PINS[i], LOW);
-  }
+    digitalWrite(ZONE_PINS[i], HIGH);
+  } 
 
   // sprinkler pin
   pinMode(SPRINKLER_PIN, OUTPUT);
-  digitalWrite(SPRINKLER_PIN, LOW);
+  digitalWrite(SPRINKLER_PIN, HIGH);
 
   // smoke pin
   pinMode(SMOKE_PIN, INPUT);
