@@ -6,12 +6,18 @@ Rails.application.configure do
   # For MqttSubscriber (mqtt_subscriber.rb)
   # We use ActiveSupport::OrderedOptions to allow nested keys like .host
   config.x.mqtt = ActiveSupport::OrderedOptions.new
-  config.x.mqtt.host = "127.0.0.1"
+  config.x.mqtt.host = "10.129.97.65"
   config.x.mqtt.port = 1883
   config.x.mqtt.username = "iotuser"
   config.x.mqtt.password = "emtech_broker"
   config.x.mqtt.topic = "site/lab1/ingest/rails"
   config.x.mqtt.qos = 1
+  config.x.mqtt.enabled_rails = true
+  config.x.mqtt.keepalive = 30
+  config.x.mqtt.client_id = "yolo-pub-rails"
+  config.x.mqtt.clean_session = false
+  config.x.mqtt.topic_rails = "site/lab1/ingest/rails"
+
 
   # For HttpNotifier (http_notifier.rb)
   # This file already looks for these keys!
