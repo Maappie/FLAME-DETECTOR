@@ -29,7 +29,7 @@ const int SPRINKLER_PIN = 18; // choose another safe output if desired
 const int SMOKE_PIN = 34;         // ADC1_CH6 (input-only)
 const int SMOKE_THRESHOLD = 400;
 
-const unsigned long QUIET_MS     = 5000; // 5s with no fire (per frame) to allow clear
+const unsigned long QUIET_MS     = 3000; // 5s with no fire (per frame) to allow clear
 const unsigned long DEBOUNCE_MS  = 2000; // up to 2s gaps allowed between hits per frame
 const unsigned long ARM_FRAME_MS = 3000; // need 3s debounced detection before first latch
 

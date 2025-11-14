@@ -2,13 +2,15 @@ import os
 from datetime import datetime
 import cv2
 
+BASE_DIR = os.path.dirname(__file__)
+
 # --- CONFIG ---
-MODEL_PATH = r"C:\Users\Renz\CODES\FLAME-DETECTOR\-FLAME_DETECTOR\best.pt"
+MODEL_PATH = os.path.join(BASE_DIR, "model", "best.pt")
 CONF_THRESH = 0.3
 FIRE_LABELS = {"fire", "flame", "flames"}  # change to your exact class name(s)
 
 # Camera (Windows example)
-CAMERA_SOURCE = 0               # or 'video=Iriun Webcam'
+CAMERA_SOURCE = 0              # or 'video=Iriun Webcam'
 CAP_BACKEND   = cv2.CAP_DSHOW   # Windows DirectShow. macOS: CAP_AVFOUNDATION, Linux: CAP_V4L2
 
 # Optional: ask the camera for this size (driver may ignore)
@@ -35,17 +37,17 @@ NUM_BG = (0, 0, 0)           # background box
 NUM_THICKNESS = 2
 
 # --- ORIENTATION ---
-FORCE_PORTRAIT = False          # set False to keep native landscape
+FORCE_PORTRAIT = True          # set False to keep native landscape
 # Options: 'cw' (90° clockwise), 'ccw' (90° counter-clockwise), '180'
 ROTATE_DIRECTION = 'cw'
 
 # ---------------- MQTT (ESP32 now, Rails later) ----------------
 # Enable/disable independent publishers
 MQTT_ENABLE_ESP32 = True
-MQTT_ENABLE_RAILS = True  # keep False for now; flip to True when ready
+MQTT_ENABLE_RAILS = True 
 
 # Broker settings (point ESP32 + Rails to the same broker)
-MQTT_HOST = "172.20.63.240"   # your laptop LAN IP
+MQTT_HOST = "127.0.0.1"   # your laptop LAN IP
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 30
 MQTT_USER = "iotuser"

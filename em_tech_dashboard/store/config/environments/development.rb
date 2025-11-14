@@ -3,9 +3,25 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # For MqttSubscriber (mqtt_subscriber.rb)
+  # We use ActiveSupport::OrderedOptions to allow nested keys like .host
+  config.x.mqtt = ActiveSupport::OrderedOptions.new
+  config.x.mqtt.host = "127.0.0.1"
+  config.x.mqtt.port = 1883
+  config.x.mqtt.username = "iotuser"
+  config.x.mqtt.password = "emtech_broker"
+  config.x.mqtt.topic = "site/lab1/ingest/rails"
+  config.x.mqtt.qos = 1
+
+  # For HttpNotifier (http_notifier.rb)
+  # This file already looks for these keys!
+  config.x.alerts = ActiveSupport::OrderedOptions.new
   config.x.alerts.webhook_url = "http://127.0.0.1:4000/alert_hooks/fire"
   config.x.alerts.webhook_secret = "EMTECH_http_sending_token_key123"
 
+  # For CamerasController (cameras_controller.rb)
+  # This replaces the default in ENV.fetch()
+  config.x.yolo_stream_url = "http://127.0.0.1:5001/stream.mjpg?token=dev-secret-123"
 
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true

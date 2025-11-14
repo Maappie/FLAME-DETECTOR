@@ -3,19 +3,20 @@ require "json"
 require "timeout"
 
 class MqttSubscriber
-  HOST="172.20.63.240"; PORT=1883; USER="iotuser"; PASS="emtech_broker"
-  TOPIC="site/lab1/ingest/rails"; QOS=1
 
   def self.start
     $stdout.sync = true
+
+    mqtt_config = Rails.configuration.x.mqtt
+
     loop do
       begin
-        puts "[MQTT] connecting to #{HOST}:#{PORT}…"
+        puts "[MQTT] connecting to #{mqtt_config.host}:#{mqtt_config.port}…"
         client = MQTT::Client.new(
-          host: HOST,
-          port: PORT,
-          username: USER,
-          password: PASS,
+          host: mqtt_config.host,
+          port: mqtt_config.port,
+          username: mqtt_config.username,
+          password: mqtt_config.password,
           keep_alive: 30,
           client_id: "rails-subscriber",
           clean_session: false
@@ -23,8 +24,8 @@ class MqttSubscriber
 
         # Manual connect timeout (5s)
         Timeout.timeout(5) { client.connect }
-        puts "[MQTT] connected. subscribing #{TOPIC} (QoS=#{QOS})"
-        client.subscribe(TOPIC => QOS)
+        puts "[MQTT] connected. subscribing #{mqtt_config.topic} (QoS=#{mqtt_config.qos})"
+        client.subscribe(mqtt_config.topic => mqtt_config.qos)
 
         client.get do |_topic, payload|
           puts "[MQTT] recv #{payload.bytesize}B"
