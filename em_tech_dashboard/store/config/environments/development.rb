@@ -6,7 +6,7 @@ Rails.application.configure do
   # For MqttSubscriber (mqtt_subscriber.rb)
   # We use ActiveSupport::OrderedOptions to allow nested keys like .host
   config.x.mqtt = ActiveSupport::OrderedOptions.new
-  config.x.mqtt.host = "10.129.97.65"
+  config.x.mqtt.host = "127.0.0.1"
   config.x.mqtt.port = 1883
   config.x.mqtt.username = "iotuser"
   config.x.mqtt.password = "emtech_broker"
